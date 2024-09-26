@@ -6,6 +6,8 @@ from app.schemas.payload import ChatRequest, GenaiRequest, EvaluateRequest
 from app.schemas.response import ChatResponse, GenaiResponse, EvaluateResponse, MWHeader, ChatTranRS, GenAIResponseTranRS, EvaluateTranRS, GenAIModel, BaseGenaiTemplate, ChatTemplate
 from app.query_vdb import ChromaDBClient
 from utils import mlflow_exception_logger, mlflow_openai_callback
+from api1 import ChainNer
+from api2 import GenAIResponse
 
 app = FastAPI()
 
@@ -26,6 +28,18 @@ async def chat(request: ChatRequest):
     chroma_client = ChromaDBClient(collection_name=collection_name)
     result = chroma_client.query(query_texts="test123", n_results=1)
     print(result)
+
+    chain_ner = ChainNer(
+    sessionId=request.TRANRQ.sessionId,
+    customerId=request.TRANRQ.customerId,
+    chromaCollection=os.environ["CHROMA_COLLECTION"],
+    sqlPath=os.environ["SQL_PATH"],
+    today = request.TRANRQ.time
+    )
+
+    response = chain_ner.search(user_input=request.TRANRQ.message)
+
+
     # 建立 ChatTranRS 回應
     tranrs = ChatTranRS(
         sessionId=request.TRANRQ.sessionId,
@@ -57,6 +71,22 @@ async def gai_response(request: GenaiRequest):
                         RETURNCODE="0000",
                         RETURNDESC="成功"
     )
+
+    genai_response = GenAIResponse(
+        sessionId=request.TRANRQ.sessionId,
+        customerId=request.TRANRQ.customerId,
+    )
+
+    response = genai_response.generate_answer(
+        message=request.TRANRQ.message,
+        tid=request.TRANRQ.tid,
+        consumptionNumber=request.TRANRQ.consumptionNumber,
+        totalAmount=request.TRANRQ.totalAmount,
+        storeName=request.TRANRQ.storeName,
+        categoryName=request.TRANRQ.categoryName,
+        tone="一般用戶"
+    )
+    
 
     tranrs = GenAIResponseTranRS(
         sessionId=request.TRANRQ.sessionId,

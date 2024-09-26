@@ -1,6 +1,13 @@
 import os
 import chromadb
 from chromadb.utils import embedding_functions
+from langchain_chroma import Chroma
+from langchain_openai import AzureOpenAIEmbeddings
+from typing import List, Dict, Any, Union
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 
 class ChromaDBClient:
     def __init__(self, collection_name: str):
@@ -12,6 +19,7 @@ class ChromaDBClient:
         self.collection_name = collection_name
         self.client = self._initialize_client()
         self.collection = self._get_or_create_collection()
+        self.vectorstore = self._get_or_create_vectorstore()
 
     def _initialize_client(self) -> chromadb.HttpClient:
         """
@@ -19,10 +27,7 @@ class ChromaDBClient:
 
         :return: 初始化的 Chroma DB 客戶端
         """
-        return chromadb.HttpClient(
-            host=os.environ["CHROMA_HOST"],
-            port='8000'
-        )
+        return chromadb.HttpClient(host=os.environ["CHROMA_HOST"], port=os.environ["CHROMA_PORT"],)
 
     def _get_azure_openai_ef(self) -> embedding_functions.OpenAIEmbeddingFunction:
         """
@@ -61,9 +66,39 @@ class ChromaDBClient:
         """
         return self.collection.query(query_texts=query_texts, n_results=n_results)
 
+    def _get_or_create_vectorstore(
+        self,
+        collection_name: str = "collect01",
+    ) -> Chroma:
+        vectordb = Chroma(
+            client=self.client,
+            collection_name=self.collection_name,
+            embedding_function=self._get_Embeddings_func(),
+        )
+        return vectordb
+
+    def _get_Embeddings_func(self) -> AzureOpenAIEmbeddings:
+        """
+        Get the embeddings function based on the specified type.
+
+        :param emb_type: Type of embeddings to use ("azure" or other).
+        :return: Embeddings function.
+        """
+        embeddings = AzureOpenAIEmbeddings(
+            azure_deployment=os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"],
+            openai_api_version=os.environ["AZURE_OPENAI_EMBEDDING_API_VERSION"],
+        )
+        return embeddings
+
+
 # # 使用範例
 # if __name__ == "__main__":
-#     collection_name = 'collect_cubelab_qa_lite'
+#     collection_name = "collect_cubelab_qa_lite"
 #     chroma_client = ChromaDBClient(collection_name=collection_name)
 #     result = chroma_client.query(query_texts="test123", n_results=1)
+#     print(result)
+
+#     result = chroma_client.vectorstore.similarity_search_with_relevance_scores(
+#         query="test123", k=1, score_threshold=0
+#     )
 #     print(result)
