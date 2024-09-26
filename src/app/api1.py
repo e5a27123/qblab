@@ -1,4 +1,5 @@
 import os
+import sys
 from uuid import uuid4
 from typing import Dict
 from functools import partial
@@ -171,7 +172,7 @@ class ChainNer:
         return chain_ner
 
 
-import sys
+
 
 
 def main():
@@ -181,7 +182,7 @@ def main():
     # userInputRaw = "HI"
     # userInputRaw = sys.argv[3]
 
-    today = "2024/05/01 14:00:03"
+    TODAY = "2024/05/01 14:00:03"
 
     chain_ner = ChainNer(
         sessionId=sessionId,
