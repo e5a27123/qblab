@@ -27,7 +27,10 @@ class ChromaDBClient:
 
         :return: 初始化的 Chroma DB 客戶端
         """
-        return chromadb.HttpClient(host=os.environ["CHROMA_HOST"], port=os.environ["CHROMA_PORT"],)
+        return chromadb.HttpClient(
+            host=os.environ["CHROMA_HOST"],
+            port=os.environ["CHROMA_PORT"],
+        )
 
     def _get_azure_openai_ef(self) -> embedding_functions.OpenAIEmbeddingFunction:
         """
@@ -36,9 +39,9 @@ class ChromaDBClient:
         :return: Azure OpenAI embedding function
         """
         openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-            api_key=os.environ["AZURE_OPENAI_API_KEY"],
+            api_key=os.environ["AZURE_OPENAI_EMBEDDING_API_KEY"],
             model_name="text-embedding-3-small",
-            api_base=os.environ["AZURE_OPENAI_ENDPOINT"],
+            api_base=os.environ["AZURE_OPENAI_EMBEDDING_ENDPOINT"],
             api_type="azure",
             api_version=os.environ["AZURE_OPENAI_EMBEDDING_API_VERSION"],
             deployment_id=os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"],
@@ -85,6 +88,8 @@ class ChromaDBClient:
         :return: Embeddings function.
         """
         embeddings = AzureOpenAIEmbeddings(
+            api_key=os.environ["AZURE_OPENAI_EMBEDDING_API_KEY"],
+            azure_endpoint=os.environ["AZURE_OPENAI_EMBEDDING_ENDPOINT"],
             azure_deployment=os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"],
             openai_api_version=os.environ["AZURE_OPENAI_EMBEDDING_API_VERSION"],
         )
@@ -92,13 +97,35 @@ class ChromaDBClient:
 
 
 # # 使用範例
-# if __name__ == "__main__":
-#     collection_name = "collect_cubelab_qa_lite"
-#     chroma_client = ChromaDBClient(collection_name=collection_name)
-#     result = chroma_client.query(query_texts="test123", n_results=1)
-#     print(result)
+if __name__ == "__main__":
+        collection_name = "collect_cubelab_qa_lite"
+        chroma_client = ChromaDBClient(collection_name=collection_name)
+        result = chroma_client.query(query_texts="test123", n_results=1)
+        print(result)
 
-#     result = chroma_client.vectorstore.similarity_search_with_relevance_scores(
-#         query="test123", k=1, score_threshold=0
-#     )
-#     print(result)
+        result = chroma_client.vectorstore.similarity_search_with_relevance_scores(
+            query="test123", k=1, score_threshold=0
+        )
+        print(result)
+    # from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+    # from langchain_core.prompts import ChatPromptTemplate
+
+    # embeddings = AzureOpenAIEmbeddings(
+    #     api_key=os.environ["AZURE_OPENAI_EMBEDDING_API_KEY"],
+    #     azure_endpoint=os.environ["AZURE_OPENAI_EMBEDDING_ENDPOINT"],
+    #     # api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    #     # azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    #     azure_deployment=os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"],
+    #     api_version=os.environ["AZURE_OPENAI_EMBEDDING_API_VERSION"],
+    # )
+    # # print(embeddings.embed_query("hi"))
+
+    # model = AzureChatOpenAI(
+    #     api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    #     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    #     openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    #     azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+    # )
+
+    # chain = ChatPromptTemplate.from_template("{input}") | model
+    # print(chain.invoke({"input": "hi"}))

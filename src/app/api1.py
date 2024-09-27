@@ -189,7 +189,7 @@ def main():
         customerId=customerId,
         chromaCollection=os.environ["CHROMA_COLLECTION"],
         sqlPath=os.environ["SQL_PATH"],
-        today=today,
+        today=TODAY,
     )
 
     response = chain_ner.search(user_input=userInputRaw)
