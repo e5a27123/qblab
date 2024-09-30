@@ -4,9 +4,10 @@ from typing import Dict, List
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from constant import PROMPT_GENAI_RESPONSE,CUST_DESC
+from constant import PROMPT_GENAI_RESPONSE, CUST_DESC
 import mlflow
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 
@@ -15,6 +16,7 @@ class GenAIResponse:
     def __init__(self, sessionId, customerId):
         self.sessionId = sessionId
         self.customerId = customerId
+        self.tone = self._set_tone()
         self.chain = self._create_chain_response()
 
     def _create_chain_response(self):
@@ -31,13 +33,20 @@ class GenAIResponse:
         chain = prompt | model | parser
         return chain
 
+    def _set_tone(self):
+        if self.customerId == "A":
+            return "高端VIP用戶"
+        elif self.customerId == "B":
+            return "重點關心客戶"
+        else:
+            return "一般用戶"
+
     def generate_answer(
         self,
         tid: str,
         message: str,
         consumptionNumber: str,
         totalAmount: str,
-        tone:str,
         storeName: List,
         categoryName: List,
         **kwargs,
@@ -56,8 +65,8 @@ class GenAIResponse:
                         "totalAmount": totalAmount,
                         "storeName": storeName,
                         "categoryName": categoryName,
-                        "tone": tone,
-                        "desc": CUST_DESC.get(tone),
+                        "tone": self.tone,
+                        "desc": CUST_DESC.get(self.tone),
                     }
                 )
             ):
@@ -83,13 +92,13 @@ class GenAIResponse:
 
 def main():
     sessionId = str(uuid4())
-    customerId = "A"
+    customerId = "B"
     message = "我上週在蝦皮花了多少錢?"
     consumptionNumber = "50"
     totalAmount = "10000"
     storeName = "蝦皮"
     categoryName = "旅宿業"
-    tid = "B"
+    tid = "C"
     genai_response = GenAIResponse(
         sessionId=sessionId,
         customerId=customerId,
@@ -102,15 +111,15 @@ def main():
         totalAmount=totalAmount,
         storeName=storeName,
         categoryName=categoryName,
-        tone="一般用戶"
     )
     print(response)
 
 
 if __name__ == "__main__":
-    mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-    mlflow.set_experiment("cubelab_demo")
-    mlflow.langchain.autolog()
+    # mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+    # mlflow.set_experiment("cubelab_demo")
+    # mlflow.langchain.autolog()
 
-    with mlflow.start_run(run_name="api2_test3") as run:
-        main()
+    # with mlflow.start_run(run_name="api2_test3") as run:
+    #     main()
+    main()

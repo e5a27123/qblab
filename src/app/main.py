@@ -84,7 +84,6 @@ async def gai_response(request: GenaiRequest):
         totalAmount=request.TRANRQ.totalAmount,
         storeName=request.TRANRQ.storeName,
         categoryName=request.TRANRQ.categoryName,
-        tone="一般用戶"
     )
     
 
