@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: cube-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      containers:
+        - name: mlflow
+          image: 335665511038.dkr.ecr.ap-northeast-1.amazonaws.com/cube-lab/mlflow-postgre:latest
+          ports:
+            - containerPort: 5000
+          command: 
+            - "mlflow"
+            - "server"
+            - "--backend-store-uri"
+            - "postgresql://postgres:postgres@postgres:5432/mlflow"
+            - "--default-artifact-root"
+            - "/mlruns"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "5000"
+          volumeMounts:
+            - mountPath: /mlruns
+              name: mlflow-artifacts
+      volumes:
+        - name: mlflow-artifacts
+          persistentVolumeClaim:
+            claimName: mlflow-artifacts-pvc
