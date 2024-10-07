@@ -1,7 +1,7 @@
+import logging
 import os
-import sys
-from uuid import uuid4
 from typing import Dict
+from datetime import datetime
 from functools import partial
 from langchain_openai import AzureChatOpenAI
 from langchain_community.chat_message_histories import SQLChatMessageHistory
@@ -9,14 +9,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
-from utils_retriever import RetrieveWithScore, get_metadata_runnable
-from query_vdb import ChromaDBClient
-from constant import PROMPT_COMPLETETION, PROMPT_QUESTION_NER
-from datetime import datetime
-from dotenv import load_dotenv
+from sqlalchemy.engine import Connectable
+from app.vdb_connector import ChromaDBClient
+from setting.utils_retriever import RetrieveWithScore, get_metadata_runnable
+from setting.constant import PROMPT_COMPLETETION, PROMPT_QUESTION_NER
 
-load_dotenv(override=True)
-
+logger = logging.getLogger(__name__)
 
 class ChainNer:
     def __init__(
@@ -24,19 +22,19 @@ class ChainNer:
         sessionId: str,
         customerId: str,
         chromaCollection: str,
-        sqlPath: str,
-        today: str,
+        engine: Connectable,
+        time: str,
         k: int = 1,
         scoreThreshold: float = 0,
         **kwargs,
     ):
-        self.today = self._convert_time_format(today)
+        self.time = self._convert_time_format(time)
         self.sessionId = sessionId
         self.customerId = customerId
         self.model = self._create_model()
         self.vectorstore = self._create_vectorstore(chromaCollection)
         self.retriever = self._create_retriever(k, scoreThreshold)
-        self.chian_completeion = self._create_chain_completeion(sqlPath)
+        self.chian_completeion = self._create_chain_completeion(engine)
         self.chain_ner = self._create_chain_ner()
 
     def search(self, user_input: str, **kwargs) -> Dict:
@@ -102,16 +100,23 @@ class ChainNer:
         return dt.strftime("%Y-%m-%d")
 
     def _create_model(self) -> AzureChatOpenAI:
+        logger.info("create_model start")
+        logger.info(f"api_key: {os.environ['AZURE_OPENAI_API_KEY']}")
+        logger.info(f"azure_endpoint: {os.environ['AZURE_OPENAI_ENDPOINT']}")
+        logger.info(f"openai_api_version: {os.environ['AZURE_OPENAI_API_VERSION']}")
+        logger.info(f"azure_deployment: {os.environ['AZURE_OPENAI_CHAT_DEPLOYMENT_NAME']}")
         model = AzureChatOpenAI(
             api_key=os.environ["AZURE_OPENAI_API_KEY"],
             azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
             openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
             azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
         )
+        logger.info("create_model finish")
         return model
 
     def _create_vectorstore(self, collection_name):
         chroma_client = ChromaDBClient(collection_name=collection_name)
+        logger.info("create vectorstore finish")
         return chroma_client.vectorstore
 
     def _create_retriever(
@@ -125,6 +130,7 @@ class ChainNer:
             k=k,
             score_threshold=scoreThreshold,
         )
+        logger.info("create retriever finish")
         return retriever
 
     def _create_chain_completeion(self, connection) -> RunnableWithMessageHistory:
@@ -132,6 +138,7 @@ class ChainNer:
 
         chain = prompt | self.model | StrOutputParser()
 
+        logger.info(f"connection: {connection}")
         get_chat_history = partial(SQLChatMessageHistory, connection=connection)
 
         chian_completeion = RunnableWithMessageHistory(
@@ -140,13 +147,16 @@ class ChainNer:
             input_messages_key="user_input",
             history_messages_key="history",
         )
+        logger.info("chain complete")
         return chian_completeion
 
     def _create_chain_ner(self):
 
         prompt = ChatPromptTemplate.from_template(PROMPT_QUESTION_NER)
+        logger.info("start json_parser_chain")
         json_parser_chain = prompt | self.model | JsonOutputParser()
 
+        logger.info("start retriever_chain")
         retriever_chain = (
             RunnableLambda(lambda response: response["modify_query"])
             | self.retriever
@@ -157,11 +167,11 @@ class ChainNer:
                 "score": get_metadata_runnable("score"),
             }
         )
-
+        logger.info("start chain_ner")
         chain_ner = (
             {
                 "question": RunnablePassthrough(),
-                "today": RunnableLambda(lambda x: self.today),
+                "time": RunnableLambda(lambda x: self.time),
             }
             | json_parser_chain
             | {
@@ -169,32 +179,6 @@ class ChainNer:
                 "retriever": retriever_chain,
             }
         )
+
         return chain_ner
 
-
-
-
-
-def main():
-    sessionId = str(uuid4())
-    customerId = "A"
-    userInputRaw = "過去一年我在蝦皮、優食花了多少錢?"
-    # userInputRaw = "HI"
-    # userInputRaw = sys.argv[3]
-
-    TODAY = "2024/05/01 14:00:03"
-
-    chain_ner = ChainNer(
-        sessionId=sessionId,
-        customerId=customerId,
-        chromaCollection=os.environ["CHROMA_COLLECTION"],
-        sqlPath=os.environ["SQL_PATH"],
-        today=TODAY,
-    )
-
-    response = chain_ner.search(user_input=userInputRaw)
-    print(response)
-
-
-if __name__ == "__main__":
-    main()

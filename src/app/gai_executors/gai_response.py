@@ -1,15 +1,9 @@
 import os
-from uuid import uuid4
 from typing import Dict, List
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from constant import PROMPT_GENAI_RESPONSE, CUST_DESC
-import mlflow
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
-
+from setting.constant import PROMPT_GENAI_RESPONSE, CUST_DESC
 
 class GenAIResponse:
 
@@ -89,37 +83,3 @@ class GenAIResponse:
 
         return response
 
-
-def main():
-    sessionId = str(uuid4())
-    customerId = "B"
-    message = "我上週在蝦皮花了多少錢?"
-    consumptionNumber = "50"
-    totalAmount = "10000"
-    storeName = "蝦皮"
-    categoryName = "旅宿業"
-    tid = "C"
-    genai_response = GenAIResponse(
-        sessionId=sessionId,
-        customerId=customerId,
-    )
-
-    response = genai_response.generate_answer(
-        message=message,
-        tid=tid,
-        consumptionNumber=consumptionNumber,
-        totalAmount=totalAmount,
-        storeName=storeName,
-        categoryName=categoryName,
-    )
-    print(response)
-
-
-if __name__ == "__main__":
-    # mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-    # mlflow.set_experiment("cubelab_demo")
-    # mlflow.langchain.autolog()
-
-    # with mlflow.start_run(run_name="api2_test3") as run:
-    #     main()
-    main()

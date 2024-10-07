@@ -1,4 +1,4 @@
-# %%
+
 from collections import Counter
 from langchain_core.runnables import RunnableLambda
 from typing import List, Callable, Dict, Union, Any
@@ -7,9 +7,6 @@ import re
 
 from langchain_core.documents import Document
 from langchain_core.runnables import chain
-
-
-# %%
 
 
 def _get_metadata(response: List[Any], *keys: str) -> List[Any]:

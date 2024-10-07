@@ -10,8 +10,6 @@ def mlflow_exception_logger(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
-            print("Args:", args)
-            print("Kwargs:", kwargs)
             return await func(*args, **kwargs)
         except Exception as e:
             error_message = f"Uncaught exception: {e}\n{traceback.format_exc()}"
@@ -25,12 +23,15 @@ def mlflow_exception_logger(func):
 def mlflow_openai_callback(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        with get_openai_callback() as cb:
-            result = await func(*args, **kwargs)
-            mlflow.log_text(str(cb), "total_cost.txt")
-            mlflow.log_metric("total_cost_USD", cb.total_cost)
-            mlflow.log_metric("total_tokens", cb.total_tokens)
-            mlflow.log_metric("successful_requests", cb.successful_requests)
+        with mlflow.start_run() as run:
+            with get_openai_callback() as cb:
+                result = await func(*args, **kwargs)
+                mlflow.log_text(str(cb), "total_cost.txt")
+                mlflow.log_metric("total_cost_USD", cb.total_cost)
+                mlflow.log_metric("total_tokens", cb.total_tokens)
+                mlflow.log_metric("successful_requests", cb.successful_requests)
+            
             return result
 
     return wrapper
+

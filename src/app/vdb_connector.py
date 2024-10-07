@@ -3,10 +3,6 @@ import chromadb
 from chromadb.utils import embedding_functions
 from langchain_chroma import Chroma
 from langchain_openai import AzureOpenAIEmbeddings
-from typing import List, Dict, Any, Union
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
 
 
 class ChromaDBClient:
@@ -59,19 +55,8 @@ class ChromaDBClient:
             embedding_function=self._get_azure_openai_ef(),
         )
 
-    def query(self, query_texts: str, n_results: int = 1):
-        """
-        查詢 Chroma DB 集合。
-
-        :param query_texts: 查詢的文本
-        :param n_results: 要返回的結果數量
-        :return: 查詢結果
-        """
-        return self.collection.query(query_texts=query_texts, n_results=n_results)
-
     def _get_or_create_vectorstore(
-        self,
-        collection_name: str = "collect01",
+        self
     ) -> Chroma:
         vectordb = Chroma(
             client=self.client,
@@ -95,37 +80,3 @@ class ChromaDBClient:
         )
         return embeddings
 
-
-# # 使用範例
-if __name__ == "__main__":
-        collection_name = "collect_cubelab_qa_lite"
-        chroma_client = ChromaDBClient(collection_name=collection_name)
-        result = chroma_client.query(query_texts="test123", n_results=1)
-        print(result)
-
-        result = chroma_client.vectorstore.similarity_search_with_relevance_scores(
-            query="test123", k=1, score_threshold=0
-        )
-        print(result)
-    # from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-    # from langchain_core.prompts import ChatPromptTemplate
-
-    # embeddings = AzureOpenAIEmbeddings(
-    #     api_key=os.environ["AZURE_OPENAI_EMBEDDING_API_KEY"],
-    #     azure_endpoint=os.environ["AZURE_OPENAI_EMBEDDING_ENDPOINT"],
-    #     # api_key=os.environ["AZURE_OPENAI_API_KEY"],
-    #     # azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    #     azure_deployment=os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"],
-    #     api_version=os.environ["AZURE_OPENAI_EMBEDDING_API_VERSION"],
-    # )
-    # # print(embeddings.embed_query("hi"))
-
-    # model = AzureChatOpenAI(
-    #     api_key=os.environ["AZURE_OPENAI_API_KEY"],
-    #     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    #     openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-    #     azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
-    # )
-
-    # chain = ChatPromptTemplate.from_template("{input}") | model
-    # print(chain.invoke({"input": "hi"}))
