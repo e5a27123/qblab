@@ -3,7 +3,11 @@ from typing import Dict, List
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from setting.constant import PROMPT_GENAI_RESPONSE, CUST_DESC
+from src.app.setting.constant import PROMPT_GENAI_RESPONSE, CUST_DESC
+from nemoguardrails import RailsConfig
+from nemoguardrails.integrations.langchain.runnable_rails import RunnableRails
+import pandas as pd
+from time import time
 
 class GenAIResponse:
 
@@ -12,6 +16,8 @@ class GenAIResponse:
         self.customerId = customerId
         self.tone = self._set_tone()
         self.chain = self._create_chain_response()
+        self.info_df = pd.read_excel(os.environ['INFO_PATH'])
+        self.add_info = self._get_info(self.info_df, customerId)
 
     def _create_chain_response(self):
 
@@ -34,6 +40,11 @@ class GenAIResponse:
             return "重點關心客戶"
         else:
             return "一般用戶"
+
+    def _get_info(self, df, customer_id:'str'):
+        df_tmp = df.loc[df.customer_id ==customer_id,'定義']
+        add_info = str([ix for ix in df_tmp.values])
+        return  add_info
 
     def generate_answer(
         self,
@@ -61,6 +72,8 @@ class GenAIResponse:
                         "categoryName": categoryName,
                         "tone": self.tone,
                         "desc": CUST_DESC.get(self.tone),
+                        "add_info":  self.add_info,
+                        # "add_info":  'foo',
                     }
                 )
             ):
@@ -75,7 +88,7 @@ class GenAIResponse:
 
         except Exception as e:
             response["template"]["tid"] = "98"
-            response["template"]["blockReason"] = e
+            response["template"]["blockReason"] = str(e)
 
         finally:
             response["sessionId"] = self.sessionId
@@ -83,3 +96,39 @@ class GenAIResponse:
 
         return response
 
+
+if __name__ == "__main__":
+
+    def test():
+        from dotenv import load_dotenv
+
+        load_dotenv(override=True)
+        from uuid import uuid4
+
+        sessionId = str(uuid4())
+        customerId = "C"
+        message = "我過去一年在蝦皮的消費紀錄"
+        consumptionNumber = "50"
+        totalAmount = "10000"
+        storeName = "蝦皮"
+        categoryName = None
+        tid = "B"
+        genai_response = GenAIResponse(
+            sessionId=sessionId,
+            customerId=customerId,
+        )
+
+        response = genai_response.generate_answer(
+            message=message,
+            tid=tid,
+            consumptionNumber=consumptionNumber,
+            totalAmount=totalAmount,
+            storeName=storeName,
+            categoryName=categoryName,
+        )
+        # print(f"message :{message}")
+        # print(response)
+    for _ in range(5):
+        stime = time()
+        test()
+        print(time() - stime)
